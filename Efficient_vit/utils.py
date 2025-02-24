@@ -54,10 +54,10 @@ def get_method(video, data_path):
     return selected_method
 
 def shuffle_dataset(dataset):
-  import random
-  random.seed(4)
-  random.shuffle(dataset)
-  return dataset
+    import random
+    random.seed(4)
+    random.shuffle(dataset)
+    return dataset
 
 def get_n_params(model):
     pp=0

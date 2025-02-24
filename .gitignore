@@ -177,6 +177,7 @@ cython_debug/
 archive
 crop_data
 
+model
 model_efficient_vit
 model_cross_efficient_vit
 *.pth

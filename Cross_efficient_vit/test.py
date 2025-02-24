@@ -40,7 +40,7 @@ import csv
 #########################
 
 MODELS_DIR = "model_cross_efficient_vit"
-BASE_DIR = "D:\\project"
+BASE_DIR = "E:\\project"
 DATA_DIR = os.path.join(BASE_DIR, "crop_data")
 TEST_DIR = os.path.join(DATA_DIR, "test_set")
 OUTPUT_DIR = os.path.join(MODELS_DIR, "tests")
@@ -107,48 +107,70 @@ def read_frames(video_path, videos, opt, config):
     # else:
     #     label = 1.
     
+    # Determine label based on dataset type
     if "Celeb-real-crop" in video_path or "YouTube-real-crop" in video_path:
         label = 0
     elif "Celeb-synthesis-crop" in video_path:
         label = 1
-    
+    else:
+        label = -1  # Undefined category (for debugging)
 
-    # Calculate the interval to extract the frames
-    frames_number = len(os.listdir(video_path))
-    frames_interval = int(frames_number / opt.frames_per_video)
-    frames_paths = os.listdir(video_path)
+    # Ensure directory exists
+    if not os.path.exists(video_path):
+        print(f"Warning: Video path does not exist: {video_path}")
+        return
+
+    # Fetch frames and ensure directory is not empty
+    frames_paths = sorted(os.listdir(video_path))
+    if not frames_paths:
+        print(f"Warning: No frames found in {video_path}")
+        return
+
+    # Calculate interval to sample frames
+    frames_number = len(frames_paths)
+    frames_interval = max(1, frames_number // opt.frames_per_video)
+
+    # Group frames by face index
     frames_paths_dict = {}
-
-    # Group the faces with the same index, reduce probabiity to skip some faces in the same video
-
     for path in frames_paths:
-        for i in range(0,3): # Consider up to 3 faces per video
-            if "_" + str(i) in path:
-                if i not in frames_paths_dict.keys():
-                    frames_paths_dict[i] = [path]
-                else:
-                    frames_paths_dict[i].append(path)
+        for i in range(3):  # Assuming indexes are _0, _1, _2
+            if f"_{i}" in path:
+                frames_paths_dict.setdefault(i, []).append(path)
 
-    # Select only the frames at a certain interval
-    if frames_interval > 0:
-        for key in frames_paths_dict.keys():
-            if len(frames_paths_dict) > frames_interval:
-                frames_paths_dict[key] = frames_paths_dict[key][::frames_interval]
-            
-            frames_paths_dict[key] = frames_paths_dict[key][:opt.frames_per_video]
+    # Sample frames at interval
+    for key in frames_paths_dict:
+        frames_paths_dict[key] = frames_paths_dict[key][::frames_interval][:opt.frames_per_video]
 
-    # Select N frames from the collected ones
+    # Define transformation
+    transform = create_base_transform(config['model']['image-size'])
+
+    # Store video frames
     video = {}
-    for key in frames_paths_dict.keys():
-        for index, frame_image in enumerate(frames_paths_dict[key]):
-            transform = create_base_transform(config['model']['image-size'])
-            image = transform(image=cv2.imread(os.path.join(video_path, frame_image)))['image']
-            if len(image) > 0:
+    for key, frames in frames_paths_dict.items():
+        for frame_image in frames:
+            image_path = os.path.join(video_path, frame_image)
+            image = cv2.imread(image_path)
+
+            if image is None:
+                print(f"Skipping invalid image: {image_path}")
+                continue  # Skip if image is not loaded
+
+            # Apply transformations safely
+            transformed = transform(image=image)
+            if 'image' in transformed:
+                image = transformed['image']
                 if key in video:
                     video[key].append(image)
                 else:
                     video[key] = [image]
-    videos.append((video, label, video_path))
+            else:
+                print(f"Transformation failed for {image_path}")
+
+    # Append the processed video and label
+    if video:
+        videos.append((video, label, video_path))
+    else:
+        print(f"Skipping video {video_path} due to empty frames.")
 
 
 def create_base_transform(size):
@@ -233,6 +255,8 @@ if __name__ == "__main__":
     for folder in folders:
         method_folder = os.path.join(TEST_DIR, folder)  
         for index, video_folder in enumerate(os.listdir(method_folder)):
+            if index == opt.max_videos:
+                break
             paths.append(os.path.join(method_folder, video_folder))
 
     # Read faces
@@ -252,7 +276,7 @@ if __name__ == "__main__":
     
     #------------------------------------------------------------------------
         
-    # array = []
+    array = []
     #------------------------------------------------------------------------
 
 
@@ -290,7 +314,7 @@ if __name__ == "__main__":
             video_pred = video_faces_preds[0]
         preds.append([video_pred])
         #------------------------------------------------------------------------
-        # array.append(video_pred)
+        array.append(video_pred)
         #------------------------------------------------------------------------
         
         
@@ -300,22 +324,22 @@ if __name__ == "__main__":
     bar.finish()
 
     #------------------------------------------------------------------------
-    # csv_file = "predictions.csv"
-    # # Read existing data
-    # with open(csv_file, mode='r', newline='') as file:
-    #     reader = list(csv.reader(file))
+    csv_file = "predictions_.csv"
+    # Read existing data
+    with open(csv_file, mode='r', newline='') as file:
+        reader = list(csv.reader(file))
 
-    # # Ensure Column 2 is updated without modifying Columns 1 and 3
-    # for i, col2 in enumerate(array):
-    #     if i < len(reader):
-    #         reader[i+1][2] = col2  # Update Column 2
-    #     else:
-    #         reader.append(["","", col2, ""])  # If the row does not exist, create it
+    # Ensure Column 2 is updated without modifying Columns 1 and 3
+    for i, col2 in enumerate(array):
+        if i < len(reader):
+            reader[i+1][2] = col2  # Update Column 2
+        else:
+            reader.append(["","", col2, ""])  # If the row does not exist, create it
 
-    # # Write updated data back to file
-    # with open(csv_file, mode='w', newline='') as file:
-    #     writer = csv.writer(file)
-    #     writer.writerows(reader)
+    # Write updated data back to file
+    with open(csv_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(reader)
 
     #------------------------------------------------------------------------
     #########################

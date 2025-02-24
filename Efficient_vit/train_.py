@@ -35,7 +35,7 @@ import yaml
 import argparse
 
 
-BASE_DIR = '/media/zaman/New Volume/project'
+BASE_DIR = 'E:\\project'
 DATA_DIR = os.path.join(BASE_DIR, "crop_data")
 TRAINING_DIR = os.path.join(DATA_DIR, "training_set")
 VALIDATION_DIR = os.path.join(DATA_DIR, "validation_set")
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_epochs', default=300, type=int,
                         help='Number of training epochs.')
-    parser.add_argument('--workers', default=5, type=int,
+    parser.add_argument('--workers', default=10, type=int,
                         help='Number of data loader workers.')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='Path to latest checkpoint (default: none).')
@@ -171,7 +171,7 @@ if __name__ == "__main__":
                         help="Which dataset to use (Deepfakes|Face2Face|FaceShifter|FaceSwap|NeuralTextures|All)")
     parser.add_argument('--max_videos', type=int, default=-1, 
                         help="Maximum number of videos to use for training (default: all).")
-    parser.add_argument('--config', type=str, default="",
+    parser.add_argument('--config', type=str, default="configs\\architecture.yaml",
                         help="Which configuration to use. See into 'config' folder.")
     parser.add_argument('--efficient_net', type=int, default=0, 
                         help="Which EfficientNet version to use (0 or 7, default: 0)")
@@ -198,7 +198,8 @@ if __name__ == "__main__":
     starting_epoch = 0
     if os.path.exists(opt.resume):
         model.load_state_dict(torch.load(opt.resume, weights_only=True))
-        starting_epoch = int(opt.resume.split("checkpoint")[1].split("_")[0]) + 1 # The checkpoint's file name format should be "checkpoint_EPOCH"
+        # starting_epoch = int(opt.resume.split("checkpoint")[1].split("_")[0]) + 1 # The checkpoint's file name format should be "checkpoint_EPOCH"
+        starting_epoch = 1
     else:
         print("No checkpoint loaded.")
 
@@ -256,6 +257,11 @@ if __name__ == "__main__":
     val_counters = collections.Counter(image[1] for image in validation_dataset)
     print(val_counters)
     print("___________________")
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("\nUsing device:", device,"\n")
+    torch.cuda.set_device(device)  # Explicitly set device
+
 
     loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor([class_weights]))
 
@@ -270,7 +276,7 @@ if __name__ == "__main__":
     #                              pin_memory=True, drop_last=False, timeout=0,
     #                              worker_init_fn=None, prefetch_factor=2,
     #                              persistent_workers=False)
-    dl = torch.utils.data.DataLoader(train_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=opt.workers, pin_memory=True, persistent_workers=True)
+    dl = torch.utils.data.DataLoader(train_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=0)
     del train_dataset
 
     validation_dataset = DeepFakesDataset(np.asarray([row[0] for row in validation_dataset]), validation_labels, config['model']['image-size'], mode='validation')
@@ -279,8 +285,8 @@ if __name__ == "__main__":
     #                                 pin_memory=True, drop_last=False, timeout=0,
     #                                 worker_init_fn=None, prefetch_factor=2,
     #                                 persistent_workers=False)
-    val_dl = torch.utils.data.DataLoader(validation_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=opt.workers, pin_memory=True,persistent_workers=True)  # Keep workers alive between epochs
-    # val_dl = torch.utils.data.DataLoader(validation_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=w)
+    # val_dl = torch.utils.data.DataLoader(validation_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=1, pin_memory=True,persistent_workers=True)  # Keep workers alive between epochs
+    val_dl = torch.utils.data.DataLoader(validation_dataset, batch_size=config['training']['bs'], shuffle=True, num_workers=0)
     del validation_dataset
     
 
@@ -309,7 +315,9 @@ if __name__ == "__main__":
             y_pred = model(images)
             y_pred = y_pred.cpu()
             
-            loss = loss_fn(y_pred, labels.float())
+            # loss = loss_fn(y_pred, labels.float())
+            device = y_pred.device  # Get the device of predictions
+            loss = loss_fn(y_pred, labels.float().to(device))
         
             corrects, positive_class, negative_class = check_correct(y_pred, labels)  
             train_correct += corrects
@@ -371,6 +379,7 @@ if __name__ == "__main__":
     
         if not os.path.exists(MODELS_PATH):
             os.makedirs(MODELS_PATH)
-        torch.save(model.state_dict(), os.path.join(MODELS_PATH,  "efficientnetB"+str(opt.efficient_net)+"_checkpoint" + str(t) + "_" + opt.dataset+".pth"))
+        # torch.save(model.state_dict(), os.path.join(MODELS_PATH,  "efficientnetB"+str(opt.efficient_net)+"_checkpoint" + str(t) + "_" + opt.dataset+".pth"))
+        torch.save(model.state_dict(), os.path.join(MODELS_PATH,  "efficient_vit"+ "_" + str(t) + "_" + opt.dataset+".pth"))
         
         
