@@ -4,6 +4,7 @@ import torch.optim as optim
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
+from tqdm import tqdm  # Import tqdm for progress bar
 from mlp import FusionMLP
 
 # 🔹 1️⃣ Load CSV Data
@@ -28,13 +29,14 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32)
 
 # 🔹 4️⃣ Instantiate Model
-
 model = FusionMLP()
 criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# 🔹 5️⃣ Training Loop
+# 🔹 5️⃣ Training Loop with Single Smooth Progress Bar
 num_epochs = 100
+progress_bar = tqdm(total=num_epochs, desc="Training", position=0, leave=True)
+
 for epoch in range(num_epochs):
     model.train()
     total_loss = 0
@@ -47,23 +49,28 @@ for epoch in range(num_epochs):
         optimizer.step()
         total_loss += loss.item()
 
-    # Print every 10 epochs
-    if epoch % 10 == 0:
-        print(f"Epoch [{epoch}/{num_epochs}], Loss: {total_loss/len(train_loader):.4f}")
+    avg_loss = total_loss / len(train_loader)
+
+    # Update the main progress bar dynamically
+    progress_bar.set_postfix(loss=avg_loss)
+    progress_bar.update(1)
+
+progress_bar.close()  # Close the progress bar after training is done
 
 # 🔹 6️⃣ Evaluate on Test Data
 model.eval()
 correct = 0
 total = 0
+
 with torch.no_grad():
-    for batch_X, batch_y in test_loader:
+    for batch_X, batch_y in tqdm(test_loader, desc="Evaluating", leave=True):
         predictions = model(batch_X)
         predicted_labels = (predictions > 0.5).float()  # Threshold 0.5
         correct += (predicted_labels == batch_y).sum().item()
         total += batch_y.size(0)
 
 accuracy = 100 * correct / total
-print(f"Test Accuracy: {accuracy:.2f}%")
+print(f"\nTest Accuracy: {accuracy:.2f}%")
 
 # 🔹 7️⃣ Save the Model
 torch.save(model.state_dict(), "fusion_mlp.pth")

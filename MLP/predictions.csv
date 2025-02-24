@@ -1,4 +1,4 @@
-video,s predict,l predict,real
+video,s predict,l predict,fake
 D:\project\crop_data\test_set\Celeb-real-crop\id43_0009,0.32332125,0.36478913,0
 D:\project\crop_data\test_set\Celeb-real-crop\id44_0000,0.4064366,0.06444671,0
 D:\project\crop_data\test_set\Celeb-real-crop\id44_0001,0.25345433,0.38546678,0
