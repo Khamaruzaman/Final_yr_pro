@@ -35,7 +35,8 @@ import yaml
 import argparse
 
 
-BASE_DIR = 'E:\\project'
+# BASE_DIR = 'E:\\project'
+BASE_DIR = '/media/zaman/New Volume/project'
 DATA_DIR = os.path.join(BASE_DIR, "crop_data")
 TRAINING_DIR = os.path.join(DATA_DIR, "training_set")
 VALIDATION_DIR = os.path.join(DATA_DIR, "validation_set")
@@ -171,7 +172,7 @@ if __name__ == "__main__":
                         help="Which dataset to use (Deepfakes|Face2Face|FaceShifter|FaceSwap|NeuralTextures|All)")
     parser.add_argument('--max_videos', type=int, default=-1, 
                         help="Maximum number of videos to use for training (default: all).")
-    parser.add_argument('--config', type=str, default="configs\\architecture.yaml",
+    parser.add_argument('--config', type=str, default="Efficient_vit/configs/architecture.yaml",
                         help="Which configuration to use. See into 'config' folder.")
     parser.add_argument('--efficient_net', type=int, default=0, 
                         help="Which EfficientNet version to use (0 or 7, default: 0)")
