@@ -23,6 +23,7 @@ from Cross_efficient_vit.cross_efficient_vit import CrossEfficientViT
 
 from MLP.mlp import FusionMLP
 
+video_name = None
 
 def preprocess_videos(opt):
     """
@@ -73,6 +74,8 @@ def preprocess_videos(opt):
                         dataset=dataset, output_path=output_path), paths
             ):
                 pbar.update()
+    global video_name
+    video_name = os.path.basename(videos_paths[0])
     os.remove(videos_paths[0])
 
 def create_base_transform(size):
@@ -291,12 +294,20 @@ def predict():
 
     boxes = os.path.join(opt.data_path, "boxes")
     crop = os.path.join(opt.data_path, "crop")
+    
+    
     for file in [boxes, crop]:
         if os.path.exists(file):
             shutil.rmtree(file)
 
+    result = {
+        "video_name": video_name,
+        "s_prediction": s_prediction.item(), 
+        "l_prediction": l_prediction.item(), 
+        "final_prediction": final_prediction.item()
+    }
     
-    return final_prediction.item()
+    return result
 
 if __name__ == "__main__":
     predict()
