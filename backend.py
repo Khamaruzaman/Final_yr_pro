@@ -240,35 +240,59 @@ def l_branch(opt):
 
 
 def predict():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default="DFDC", type=str,
-                        help='Dataset (DFDC / FACEFORENSICS)')
-    parser.add_argument('--data_path', default='crop_data\\backend_test',
-                        type=str, help='Videos directory')
-    parser.add_argument("--detector_type", help="Type of the detector", default="FacenetDetector",
-                        choices=["FacenetDetector"])
-    parser.add_argument(
-        "--processes", help="Number of processes", default=1, type=int)
-    parser.add_argument('--workers', default=10, type=int,
-                        help='Number of data loader workers.')
-    parser.add_argument('--model_path_sbranch', default='Efficient_vit\\efficient_vit.pth', type=str, metavar='PATH',
-                        help='Path to S branch model checkpoint (default: none).')
-    parser.add_argument('--model_path_lbranch', default='Cross_efficient_vit\\cross_efficient_vit.pth', type=str, metavar='PATH',
-                        help='Path to L branch model checkpoint (default: none).')
-    parser.add_argument('--max_videos', type=int, default=-1,
-                        help="Maximum number of videos to use for training (default: all).")
-    parser.add_argument('--config_sbranch', type=str, default='Efficient_vit\\configs\\architecture.yaml',
-                        help="Which configuration to use for S branch. See into 'config' folder.")
-    parser.add_argument('--config_lbranch', type=str, default='Cross_efficient_vit\\configs\\architecture.yaml',
-                        help="Which configuration to use for L branch. See into 'config' folder.")
-    parser.add_argument('--efficient_net', type=int, default=0,
-                        help="Which EfficientNet version to use (0 or 7, default: 0)")
-    parser.add_argument('--frames_per_video', type=int, default=30,
-                        help="How many equidistant frames for each video (default: 30)")
-    parser.add_argument('--batch_size', type=int, default=32,
-                        help="Batch size (default: 32)")
+    default_config = {
+        "dataset": "DFDC",
+        "data_path": "crop_data\\backend_test",
+        "detector_type": "FacenetDetector",
+        "processes": 1,
+        "workers": 10,
+        "model_path_sbranch": "Efficient_vit\\efficient_vit.pth",
+        "model_path_lbranch": "Cross_efficient_vit\\cross_efficient_vit.pth",
+        "max_videos": -1,
+        "config_sbranch": "Efficient_vit\\configs\\architecture.yaml",
+        "config_lbranch": "Cross_efficient_vit\\configs\\architecture.yaml",
+        "efficient_net": 0,
+        "frames_per_video": 30,
+        "batch_size": 32
+    }
+    
+    # Create a simple object that allows attribute-style access
+    class Config:
+        def __init__(self, config_dict):
+            self.__dict__.update(config_dict)
 
-    opt = parser.parse_args()
+    # Create the configuration object
+    opt = Config(default_config)
+    
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--dataset', default="DFDC", type=str,
+    #                     help='Dataset (DFDC / FACEFORENSICS)')
+    # parser.add_argument('--data_path', default='crop_data\\backend_test',
+    #                     type=str, help='Videos directory')
+    # parser.add_argument("--detector_type", help="Type of the detector", default="FacenetDetector",
+    #                     choices=["FacenetDetector"])
+    # parser.add_argument(
+    #     "--processes", help="Number of processes", default=1, type=int)
+    # parser.add_argument('--workers', default=10, type=int,
+    #                     help='Number of data loader workers.')
+    # parser.add_argument('--model_path_sbranch', default='Efficient_vit\\efficient_vit.pth', type=str, metavar='PATH',
+    #                     help='Path to S branch model checkpoint (default: none).')
+    # parser.add_argument('--model_path_lbranch', default='Cross_efficient_vit\\cross_efficient_vit.pth', type=str, metavar='PATH',
+    #                     help='Path to L branch model checkpoint (default: none).')
+    # parser.add_argument('--max_videos', type=int, default=-1,
+    #                     help="Maximum number of videos to use for training (default: all).")
+    # parser.add_argument('--config_sbranch', type=str, default='Efficient_vit\\configs\\architecture.yaml',
+    #                     help="Which configuration to use for S branch. See into 'config' folder.")
+    # parser.add_argument('--config_lbranch', type=str, default='Cross_efficient_vit\\configs\\architecture.yaml',
+    #                     help="Which configuration to use for L branch. See into 'config' folder.")
+    # parser.add_argument('--efficient_net', type=int, default=0,
+    #                     help="Which EfficientNet version to use (0 or 7, default: 0)")
+    # parser.add_argument('--frames_per_video', type=int, default=30,
+    #                     help="How many equidistant frames for each video (default: 30)")
+    # parser.add_argument('--batch_size', type=int, default=32,
+    #                     help="Batch size (default: 32)")
+
+    # opt = parser.parse_args()
     print(opt)
 
     preprocess_videos(opt=opt)

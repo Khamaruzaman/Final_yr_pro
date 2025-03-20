@@ -185,3 +185,4 @@ Efficient_vit/*.txt
 Cross_efficient_vit/*.txt
 
 .gitignore
+aug.py
