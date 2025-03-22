@@ -264,44 +264,16 @@ def predict():
     # Create the configuration object
     opt = Config(default_config)
     
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--dataset', default="DFDC", type=str,
-    #                     help='Dataset (DFDC / FACEFORENSICS)')
-    # parser.add_argument('--data_path', default='crop_data\\backend_test',
-    #                     type=str, help='Videos directory')
-    # parser.add_argument("--detector_type", help="Type of the detector", default="FacenetDetector",
-    #                     choices=["FacenetDetector"])
-    # parser.add_argument(
-    #     "--processes", help="Number of processes", default=1, type=int)
-    # parser.add_argument('--workers', default=10, type=int,
-    #                     help='Number of data loader workers.')
-    # parser.add_argument('--model_path_sbranch', default='Efficient_vit\\efficient_vit.pth', type=str, metavar='PATH',
-    #                     help='Path to S branch model checkpoint (default: none).')
-    # parser.add_argument('--model_path_lbranch', default='Cross_efficient_vit\\cross_efficient_vit.pth', type=str, metavar='PATH',
-    #                     help='Path to L branch model checkpoint (default: none).')
-    # parser.add_argument('--max_videos', type=int, default=-1,
-    #                     help="Maximum number of videos to use for training (default: all).")
-    # parser.add_argument('--config_sbranch', type=str, default='Efficient_vit\\configs\\architecture.yaml',
-    #                     help="Which configuration to use for S branch. See into 'config' folder.")
-    # parser.add_argument('--config_lbranch', type=str, default='Cross_efficient_vit\\configs\\architecture.yaml',
-    #                     help="Which configuration to use for L branch. See into 'config' folder.")
-    # parser.add_argument('--efficient_net', type=int, default=0,
-    #                     help="Which EfficientNet version to use (0 or 7, default: 0)")
-    # parser.add_argument('--frames_per_video', type=int, default=30,
-    #                     help="How many equidistant frames for each video (default: 30)")
-    # parser.add_argument('--batch_size', type=int, default=32,
-    #                     help="Batch size (default: 32)")
 
-    # opt = parser.parse_args()
     print(opt)
 
     preprocess_videos(opt=opt)
 
     s_prediction = s_branch(opt=opt)
-    print("S Branch prediction: ", s_prediction)
+    # print("S Branch prediction: ", s_prediction)
 
     l_prediction = l_branch(opt=opt)
-    print("L Branch prediction: ", l_prediction)
+    # print("L Branch prediction: ", l_prediction)
     
     mlp= FusionMLP()
     mlp.load_state_dict(torch.load("MLP\\fusion_mlp.pth"))
@@ -314,7 +286,11 @@ def predict():
     input_data = torch.cat((s_prediction, l_prediction), dim=1)
     final_prediction = mlp(input_data)
     
-    print(f"Final Prediction: {final_prediction.item():.4f}")  # Closer to 1 → Real, Closer to 0 → Fake
+    # average prediction
+    final = (s_prediction + l_prediction)/2
+    
+    
+    # print(f"Final Prediction: {final_prediction.item():.4f}")  # Closer to 1 → Real, Closer to 0 → Fake
 
     boxes = os.path.join(opt.data_path, "boxes")
     crop = os.path.join(opt.data_path, "crop")
@@ -328,8 +304,11 @@ def predict():
         "video_name": video_name,
         "s_prediction": s_prediction.item(), 
         "l_prediction": l_prediction.item(), 
-        "final_prediction": final_prediction.item()
+        # "final_prediction": final_prediction.item()
+        "final_prediction": final.item()
     }
+    
+    print(result)
     
     return result
 
