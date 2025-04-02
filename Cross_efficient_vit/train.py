@@ -31,62 +31,86 @@ import math
 import yaml
 import argparse
 
-BASE_DIR = '../../deep_fakes/'
-DATA_DIR = os.path.join(BASE_DIR, "dataset")
+BASE_DIR = 'E:\\project'
+DATA_DIR = os.path.join(BASE_DIR, "crop_data")
 TRAINING_DIR = os.path.join(DATA_DIR, "training_set")
 VALIDATION_DIR = os.path.join(DATA_DIR, "validation_set")
 TEST_DIR = os.path.join(DATA_DIR, "test_set")
 MODELS_PATH = "models"
-METADATA_PATH = os.path.join(BASE_DIR, "data/metadata") # Folder containing all training metadata for DFDC dataset
-VALIDATION_LABELS_PATH = os.path.join(DATA_DIR, "dfdc_val_labels.csv")
+# METADATA_PATH = os.path.join(BASE_DIR, "data/metadata") # Folder containing all training metadata for DFDC dataset
+# VALIDATION_LABELS_PATH = os.path.join(DATA_DIR, "dfdc_val_labels.csv")
 
 
-def read_frames(video_path, train_dataset, validation_dataset):
+def read_frames(video_path, train_dataset, validation_dataset,config):
     
     # Get the video label based on dataset selected
-    method = get_method(video_path, DATA_DIR)
-    if TRAINING_DIR in video_path:
-        if "Original" in video_path:
-            label = 0.
-        elif "DFDC" in video_path:
-            for json_path in glob.glob(os.path.join(METADATA_PATH, "*.json")):
-                with open(json_path, "r") as f:
-                    metadata = json.load(f)
-                video_folder_name = os.path.basename(video_path)
-                video_key = video_folder_name + ".mp4"
-                if video_key in metadata.keys():
-                    item = metadata[video_key]
-                    label = item.get("label", None)
-                    if label == "FAKE":
-                        label = 1.         
-                    else:
-                        label = 0.
-                    break
-                else:
-                    label = None
-        else:
-            label = 1.
-        if label == None:
-            print("NOT FOUND", video_path)
-    else:
-        if "Original" in video_path:
-            label = 0.
-        elif "DFDC" in video_path:
-            val_df = pd.DataFrame(pd.read_csv(VALIDATION_LABELS_PATH))
-            video_folder_name = os.path.basename(video_path)
-            video_key = video_folder_name + ".mp4"
-            label = val_df.loc[val_df['filename'] == video_key]['label'].values[0]
-        else:
-            label = 1.
+    # method = get_method(video_path, DATA_DIR)
+    # if TRAINING_DIR in video_path:
+    #     if "Original" in video_path:
+    #         label = 0.
+    #     elif "DFDC" in video_path:
+    #         for json_path in glob.glob(os.path.join(METADATA_PATH, "*.json")):
+    #             with open(json_path, "r") as f:
+    #                 metadata = json.load(f)
+    #             video_folder_name = os.path.basename(video_path)
+    #             video_key = video_folder_name + ".mp4"
+    #             if video_key in metadata.keys():
+    #                 item = metadata[video_key]
+    #                 label = item.get("label", None)
+    #                 if label == "FAKE":
+    #                     label = 1.         
+    #                 else:
+    #                     label = 0.
+    #                 break
+    #             else:
+    #                 label = None
+    #     else:
+    #         label = 1.
+    #     if label == None:
+    #         print("NOT FOUND", video_path)
+    # else:
+    #     if "Original" in video_path:
+    #         label = 0.
+    #     elif "DFDC" in video_path:
+    #         val_df = pd.DataFrame(pd.read_csv(VALIDATION_LABELS_PATH))
+    #         video_folder_name = os.path.basename(video_path)
+    #         video_key = video_folder_name + ".mp4"
+    #         label = val_df.loc[val_df['filename'] == video_key]['label'].values[0]
+    #     else:
+    #         label = 1.
+    
+    label = None
+
+    
+    if TRAINING_DIR in video_path or VALIDATION_DIR in video_path:
+        if "Celeb-real-crop" in video_path:
+            label=0
+        elif "Celeb-synthesis-crop" in video_path:
+            label=1
+        elif "YouTube-real-crop" in video_path:
+            label=0
+            
+    # Error handling if label is not assigned
+    if label is None:
+        print(f"Label not found for video: {video_path}")
+        return
+    
+    # Validate video path
+    if not os.path.exists(video_path):
+        print(f"Video path does not exist: {video_path}")
+        return
 
     # Calculate the interval to extract the frames
     frames_number = len(os.listdir(video_path))
-    if label == 0:
-        min_video_frames = max(int(config['training']['frames-per-video'] * config['training']['rebalancing-real']),1) # Compensate unbalancing
-    else:
-        min_video_frames = max(int(config['training']['frames-per-video'] * config['training']['rebalancing-fake']),1)
+    if frames_number == 0:
+        print(f"No frames found in video path: {video_path}")
+        return
 
-    
+    if label == 0:
+        min_video_frames = max(int(config['training']['frames-per-video'] * config['training']['rebalancing_real']),1) # Compensate unbalancing
+    else:
+        min_video_frames = max(int(config['training']['frames-per-video'] * config['training']['rebalancing_fake']),1)
+
     
     if VALIDATION_DIR in video_path:
         min_video_frames = int(max(min_video_frames/8, 2))
@@ -102,6 +126,7 @@ def read_frames(video_path, train_dataset, validation_dataset):
                     frames_paths_dict[i] = [path]
                 else:
                     frames_paths_dict[i].append(path)
+
     # Select only the frames at a certain interval
     if frames_interval > 0:
         for key in frames_paths_dict.keys():
@@ -109,12 +134,19 @@ def read_frames(video_path, train_dataset, validation_dataset):
                 frames_paths_dict[key] = frames_paths_dict[key][::frames_interval]
             
             frames_paths_dict[key] = frames_paths_dict[key][:min_video_frames]
+
     # Select N frames from the collected ones
     for key in frames_paths_dict.keys():
         for index, frame_image in enumerate(frames_paths_dict[key]):
             #image = transform(np.asarray(cv2.imread(os.path.join(video_path, frame_image))))
             image = cv2.imread(os.path.join(video_path, frame_image))
-            if image is not None:
+            if image is None:
+                print(f"Warning: Could not read image {os.path.join(video_path, frame_image)}")
+                continue
+            else:
+            # if image is not None:
+                image = cv2.resize(image, (224, 224)) 
+                # print(f"Appending image of shape {image.shape} with label {label}")
                 if TRAINING_DIR in video_path:
                     train_dataset.append((image, label))
                 else:
