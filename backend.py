@@ -269,25 +269,25 @@ def predict():
 
     preprocess_videos(opt=opt)
 
-    s_prediction = s_branch(opt=opt)
+    # s_prediction = s_branch(opt=opt)
     # print("S Branch prediction: ", s_prediction)
 
     l_prediction = l_branch(opt=opt)
     # print("L Branch prediction: ", l_prediction)
     
-    mlp= FusionMLP()
-    mlp.load_state_dict(torch.load("MLP\\fusion_mlp.pth"))
-    mlp.eval()
+    # mlp= FusionMLP()
+    # mlp.load_state_dict(torch.load("MLP\\fusion_mlp.pth"))
+    # mlp.eval()
     
     #  Convert NumPy float32 to PyTorch Tensor
-    s_prediction = torch.tensor([[s_prediction]])  # Shape: (1,1)
+    # s_prediction = torch.tensor([[s_prediction]])  # Shape: (1,1)
     l_prediction = torch.tensor([[l_prediction]])  # Shape: (1,1)
     
-    input_data = torch.cat((s_prediction, l_prediction), dim=1)
-    final_prediction = mlp(input_data)
+    # input_data = torch.cat((s_prediction, l_prediction), dim=1)
+    # final_prediction = mlp(input_data)
     
     # average prediction
-    final = (s_prediction + l_prediction)/2
+    # final = (s_prediction + l_prediction)/2
     
     
     # print(f"Final Prediction: {final_prediction.item():.4f}")  # Closer to 1 → Real, Closer to 0 → Fake
@@ -300,12 +300,20 @@ def predict():
         if os.path.exists(file):
             shutil.rmtree(file)
 
+    # result = {
+    #     "video_name": video_name,
+    #     "s_prediction": s_prediction.item(), 
+    #     "l_prediction": l_prediction.item(), 
+    #     # "final_prediction": final_prediction.item()
+    #     "final_prediction": final.item()
+    # }
+    
     result = {
         "video_name": video_name,
-        "s_prediction": s_prediction.item(), 
-        "l_prediction": l_prediction.item(), 
+        # "s_prediction": s_prediction.item(), 
+        # "l_prediction": l_prediction.item(), 
         # "final_prediction": final_prediction.item()
-        "final_prediction": final.item()
+        "final_prediction": l_prediction.item()
     }
     
     print(result)
